@@ -48,7 +48,7 @@
 <body>
 
   <div id="startScreen">
-    <h1>🎲 Math is Fun!</h1>
+    <h1>🎲 Math Fun!</h1>
     <p>Enter your name:</p>
     <input type="text" id="playerNameInput" placeholder="Your name" />
     <p>Include multiplication (2–5x)?</p>
@@ -58,13 +58,13 @@
   </div>
 
   <div id="gameScreen" class="hidden">
-    <h1>🎯 Let's Play Now!!</h1>
+    <h1>🎯 Let's Play!</h1>
     <div id="playerInfo"></div>
     <div id="question">Loading...</div>
     <input type="number" id="answer" placeholder="Your answer" />
     <br>
-    <button onclick="checkAnswer()">Check</button>
-    <button onclick="newQuestion()">Skip</button>
+    <button onclick="skipQuestion()">Skip</button>
+    <button onclick="restartGame()">🔁 Restart</button>
     <div id="feedback"></div>
     <div id="timer">Time left: 120s</div>
     <div id="score">Score: 0</div>
@@ -80,6 +80,7 @@
     let questionTime = 20;
     let playerName = '';
     let includeMultiplication = true;
+    let isGameActive = false;
 
     const questionEl = document.getElementById('question');
     const answerInput = document.getElementById('answer');
@@ -89,6 +90,12 @@
     const highScoreEl = document.getElementById('highScoreBoard');
     const playerInfoEl = document.getElementById('playerInfo');
 
+    answerInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        checkAnswer();
+      }
+    });
+
     function startGame() {
       playerName = document.getElementById('playerNameInput').value || 'Player';
       includeMultiplication = document.querySelector('input[name="multiply"]:checked').value === 'yes';
@@ -96,9 +103,23 @@
       document.getElementById('startScreen').classList.add('hidden');
       document.getElementById('gameScreen').classList.remove('hidden');
       playerInfoEl.textContent = `👤 Player: ${playerName}`;
+
+      resetGameState();
       updateHighScoreDisplay();
       newQuestion();
+
+      isGameActive = true;
       gameTimer = setInterval(updateGameTimer, 1000);
+    }
+
+    function resetGameState() {
+      clearInterval(gameTimer);
+      clearTimeout(questionTimer);
+      score = 0;
+      timeLeft = 120;
+      answerInput.disabled = false;
+      scoreEl.textContent = `Score: 0`;
+      timerEl.textContent = `Time left: ${timeLeft}s`;
     }
 
     function updateGameTimer() {
@@ -113,12 +134,14 @@
       clearTimeout(questionTimer);
       questionTimer = setTimeout(() => {
         feedbackEl.textContent = '⏱️ Time’s up!';
+        subtractPoint();
         newQuestion();
       }, questionTime * 1000);
     }
 
     function newQuestion() {
       clearTimeout(questionTimer);
+
       let type;
       if (includeMultiplication && Math.random() < 0.33) {
         type = 'multiply';
@@ -150,6 +173,7 @@
     }
 
     function checkAnswer() {
+      if (!isGameActive) return;
       const userAnswer = parseInt(answerInput.value);
       if (userAnswer === currentAnswer) {
         feedbackEl.textContent = '✅ Correct!';
@@ -157,11 +181,25 @@
         scoreEl.textContent = `Score: ${score}`;
         newQuestion();
       } else {
-        feedbackEl.textContent = '❌ Try again!';
+        feedbackEl.textContent = '❌ Wrong!';
+        subtractPoint();
       }
     }
 
+    function subtractPoint() {
+      score = Math.max(0, score - 1);
+      scoreEl.textContent = `Score: ${score}`;
+    }
+
+    function skipQuestion() {
+      if (!isGameActive) return;
+      feedbackEl.textContent = '⏭️ Skipped!';
+      subtractPoint();
+      newQuestion();
+    }
+
     function endGame() {
+      isGameActive = false;
       clearInterval(gameTimer);
       clearTimeout(questionTimer);
       feedbackEl.textContent = `🎉 Game Over! Final Score: ${score}`;
@@ -181,6 +219,10 @@
     function updateHighScoreDisplay() {
       const best = JSON.parse(localStorage.getItem('highScore')) || { player: 'None', score: 0 };
       highScoreEl.textContent = `🏅 High Score: ${best.score} by ${best.player}`;
+    }
+
+    function restartGame() {
+      window.location.reload(); // full reset
     }
   </script>
 
